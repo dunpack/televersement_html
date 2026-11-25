@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transfert de fichiers</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: var(--card);
+      width: 100%;
+      max-width: 540px;
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background-color: #f8fafc;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background-color: #eff6ff;
+    }
+
+    .drop-zone svg {
+      width: 42px;
+      height: 42px;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .drop-zone p {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .drop-zone span {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .file-card {
+      display: none;
+      margin-top: 20px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fafc;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .file-card.active {
+      display: flex;
+    }
+
+    .preview-thumb {
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.75rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 0.92rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .remove-btn:hover { color: var(--danger); }
+
+    .progress-wrapper {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .progress-wrapper.active { display: block; }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.15s ease;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button.btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      display: none;
+    }
+
+    .btn-danger:hover { background: var(--danger-hover); }
+
+    .status-box {
+      display: none;
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    .status-box.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .status-box.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .status-box a {
+      color: inherit;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Envoyer un fichier</h1>
+    <p class="subtitle">Sélectionnez un fichier local pour le transférer sur le serveur</p>
+
+    <div class="drop-zone" id="dropZone">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+      <p>Glissez-déposez votre fichier ici ou cliquez pour parcourir</p>
+      <span>Taille maximale autorisée par le serveur : 50 Mo</span>
+      <input type="file" id="fileInput" hidden />
+    </div>
+
+    <div class="file-card" id="fileCard">
+      <div id="previewContainer" class="preview-thumb">DOC</div>
+      <div class="file-info">
+        <div class="file-name" id="fileName">nom-du-fichier.pdf</div>
+        <div class="file-meta" id="fileMeta">0 Ko</div>
+      </div>
+      <button type="button" class="remove-btn" id="removeFileBtn" title="Retirer le fichier">&times;</button>
+    </div>
+
+    <div class="progress-wrapper" id="progressWrapper">
+      <div class="progress-header">
+        <span id="progressLabel">Transfert en cours...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="uploadBtn" disabled>Transférer sur le serveur</button>
+      <button type="button" class="btn btn-danger" id="cancelBtn">Annuler</button>
+    </div>
+
+    <div class="status-box" id="statusBox"></div>
+  </div>
+
+  <script>
+    const API_ENDPOINT = 'https://domaine.com/exemple/api/upload';
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileCard = document.getElementById('fileCard');
+    const previewContainer = document.getElementById('previewContainer');
+    const fileNameEl = document.getElementById('fileName');
+    const fileMetaEl = document.getElementById('fileMeta');
+    const removeFileBtn = document.getElementById('removeFileBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const progressWrapper = document.getElementById('progressWrapper');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressLabel = document.getElementById('progressLabel');
+    const statusBox = document.getElementById('statusBox');
+
+    let selectedFile = null;
+    let currentXhr = null;
+
+    // Formatage lisible de la taille
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Octet';
+      const k = 1024;
+      const sizes = ['Octets', 'Ko', 'Mo', 'Go'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Sélection d'un fichier
+    function handleFileSelection(file) {
+      if (!file) return;
+      selectedFile = file;
+
+      fileNameEl.textContent = file.name;
+      fileMetaEl.textContent = `${formatBytes(file.size)} • ${file.type || 'Type inconnu'}`;
+
+      // Aperçu si c'est une image
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewContainer.innerHTML = `<img src="${e.target.result}" class="preview-thumb" alt="Aperçu" />`;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const ext = file.name.split('.').pop().toUpperCase().slice(0, 4);
+        previewContainer.textContent = ext || 'FILE';
+      }
+
+      fileCard.classList.add('active');
+      uploadBtn.disabled = false;
+      resetFeedback();
+    }
+
+    function resetFeedback() {
+      statusBox.className = 'status-box';
+      statusBox.innerHTML = '';
+      progressWrapper.classList.remove('active');
+      progressBar.style.width = '0%';
+      progressPercent.textContent = '0%';
+    }
+
+    function clearSelection() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileCard.classList.remove('active');
+      uploadBtn.disabled = true;
+      resetFeedback();
+    }
+
+    // Événements Drag & Drop et clic
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files[0]));
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    removeFileBtn.addEventListener('click', clearSelection);
+
+    // Envoi réel vers l'API
+    uploadBtn.addEventListener('click', () => {
+      if (!selectedFile) return;
+
+      resetFeedback();
+      progressWrapper.classList.add('active');
+      progressLabel.textContent = 'Transfert en cours...';
+      uploadBtn.disabled = true;
+      removeFileBtn.disabled = true;
+      cancelBtn.style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const xhr = new XMLHttpRequest();
+      currentXhr = xhr;
+
+      // Suivi de la progression d'envoi
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percent + '%';
+          progressPercent.textContent = percent + '%';
+          if (percent === 100) {
+            progressLabel.textContent = 'Traitement par le serveur...';
+          }
+        }
+      });
+
+      // Réponse reçue du serveur
+      xhr.addEventListener('load', () => {
+        finishRequest();
+        let responseData = {};
+        try {
+          responseData = JSON.parse(xhr.responseText);
+        } catch (err) {
+          responseData = { message: 'Réponse invalide du serveur.' };
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300 && responseData.success) {
+          progressLabel.textContent = 'Terminé';
+          const fileUrl = responseData.file?.url;
+          const linkHtml = fileUrl
+            ? `<br>Fichier enregistré : <a href="${fileUrl}" target="_blank">${responseData.file.savedName}</a>`
+            : '';
+          showStatus('success', `✅ ${responseData.message}${linkHtml}`);
+        } else {
+          progressLabel.textContent = 'Échec';
+          showStatus('error', `❌ Erreur (${xhr.status}) : ${responseData.message || 'Échec du transfert.'}`);
+        }
+      });
+
+      // Erreur réseau
+      xhr.addEventListener('error', () => {
+        finishRequest();
+        progressLabel.textContent = 'Erreur réseau';
+        showStatus('error', '❌ Impossible de joindre le serveur.');
+      });
+
+      // Annulation manuelle
+      xhr.addEventListener('abort', () => {
+        finishRequest();
+        progressLabel.textContent = 'Annulé';
+        showStatus('error', '⚠️ Transfert annulé par l’utilisateur.');
+      });
+
+      xhr.open('POST', API_ENDPOINT, true);
+      xhr.send(formData);
+    });
+
+    // Bouton d'annulation
+    cancelBtn.addEventListener('click', () => {
+      if (currentXhr) {
+        currentXhr.abort();
+      }
+    });
+
+    function finishRequest() {
+      currentXhr = null;
+      uploadBtn.disabled = false;
+      removeFileBtn.disabled = false;
+      cancelBtn.style.display = 'none';
+    }
+
+    function showStatus(type, htmlMessage) {
+      statusBox.className = `status-box ${type}`;
+      statusBox.innerHTML = htmlMessage;
+    }
+  </script>
+
+</body>
+</html>
